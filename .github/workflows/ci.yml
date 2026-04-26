@@ -6,7 +6,7 @@ on:
       - main
       - develop
       - 'feature/**'
-  pull_request:
+  pull_request_target:
     branches:
       - main
 
@@ -19,6 +19,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'pull_request_target' && github.event.pull_request.head.sha || github.sha }}
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -32,7 +34,7 @@ jobs:
           python -m pytest -q
 
   comment-pr:
-    if: ${{ always() && github.event_name == 'pull_request' }}
+    if: ${{ always() && github.event_name == 'pull_request_target' }}
     needs: test
     runs-on: ubuntu-latest
     permissions:
