@@ -10,6 +10,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -27,3 +30,52 @@ jobs:
       - name: Run tests
         run: |
           python -m pytest -q
+
+  comment-pr:
+    if: ${{ always() && github.event_name == 'pull_request' }}
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - name: Comment test result on PR
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          repo = os.environ["GITHUB_REPOSITORY"]
+          pr_number = os.environ["PR_NUMBER"]
+          test_result = os.environ["TEST_RESULT"]
+          run_url = f"{os.environ['GITHUB_SERVER_URL']}/{repo}/actions/runs/{os.environ['GITHUB_RUN_ID']}"
+
+          body = "\n".join(
+              [
+                  "## Resultado automatico do CI",
+                  f"- Status dos testes: **{test_result}**",
+                  f"- Workflow: `{os.environ['GITHUB_WORKFLOW']}`",
+                  f"- Execucao: {run_url}",
+              ]
+          )
+
+          request = urllib.request.Request(
+              url=f"https://api.github.com/repos/{repo}/issues/{pr_number}/comments",
+              data=json.dumps({"body": body}).encode("utf-8"),
+              headers={
+                  "Accept": "application/vnd.github+json",
+                  "Authorization": f"Bearer {os.environ['GITHUB_TOKEN']}",
+                  "User-Agent": "github-actions",
+                  "X-GitHub-Api-Version": "2022-11-28",
+              },
+              method="POST",
+          )
+
+          with urllib.request.urlopen(request) as response:
+              print(response.read().decode("utf-8"))
+          PY
