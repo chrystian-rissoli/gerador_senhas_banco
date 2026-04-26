@@ -1,4 +1,4 @@
-# Gerador de Senhas Bancarias
+﻿# Gerador de Senhas Bancarias
 
 Projeto academico de DevOps com uma API simples em Python + Flask para geracao de senhas seguras, testes com `pytest`, containerizacao com Docker e automacao com GitHub Actions.
 
@@ -99,4 +99,5 @@ curl http://localhost:5000/health
 ## GitHub Actions
 
 - `CI`: instala dependencias e executa os testes com `pytest`.
+- Em pull requests para `main`, o workflow de CI publica um comentario automatico na PR com o resultado dos testes.
 - `CD`: valida o build da imagem Docker em push e pull request, sem depender de Docker Hub ou secrets externos.
